@@ -3,5 +3,9 @@
   "version": "0.0.0",
   "description": "placeholder for future using",
   "main": "index.js",
-  "repository": "LabMemNo003/dianbo-rfc-render"
+  "repository": "LabMemNo003/dianbo-rfc-render",
+  "dependencies": {
+    "commander": "^5.1.0",
+    "fs-extra": "^9.0.1"
+  }
 }
