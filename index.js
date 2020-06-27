@@ -7,7 +7,6 @@ const process = require('process');
 const fse = require('fs-extra');
 const { program } = require('commander');
 const { JSDOM } = require("jsdom");
-const { resolve } = require('path');
 
 program
     .option('-i, --index <int>', 'RFC index')
@@ -35,7 +34,83 @@ args.cacheDir = './cache/';
     await cache.save(args.htmlBodyFile, body.outerHTML);
 
     // Process RFC text
-    const text = await cache.get(args.textFile, args.textURL);
+    let text = await cache.get(args.textFile, args.textURL);
+    text = String(text);
+
+    {
+        String.prototype.old_replace = String.prototype.replace;
+        // String.prototype.replace = function (regexp, replacement) {
+        //     if (this.search(regexp) !== -1)
+        //         console.log(regexp);
+        //     return this.old_replace(regexp, replacement);
+        // }
+        String.prototype.replace = function (regexp, replacement) {
+            const result = this.old_replace(regexp, replacement);
+            if (result != this) console.log(regexp);
+            return result;
+        }
+    }
+    {
+        // # ------------------------------------------------------------------------
+        // # Start of markup handling
+
+        // # Convert \r which is not followed or preceded by a \n to \n
+        // #  (in case this is a mac document)
+        // data = re.sub("([^\n])\r([^\n])", "\g<1>\n\g<2>", data)
+        text = text.replace(/([^\n])\r([^\n])/g, '$1\n$2');
+    }
+    {
+        // # Strip \r (in case this is a ms format document):
+        // data = string.replace(data,"\r","")
+        text = text.replace(/\r/g, '');
+    }
+    {
+        // # -------------
+        // # Normalization
+
+        // # Remove whitespace at the end of lines
+        // data = re.sub("[\t ]+\n", "\n", data)
+        text = text.replace(/[\t ]+\n/g, '\n');
+    }
+    {
+        // # Remove whitespace (including formfeeds) at the end of the document.
+        // # (Trailing formfeeds will result in trailing blank pages.)
+        // data = re.sub("[\t \r\n\f]+$", "\n", data)
+        text = text.replace(/[\t \r\n\f]+$/g, '\n');
+    }
+    {
+        // data = data.expandtabs()
+        text = text.replace(/\t/g, '        ');
+    }
+    {
+        // # Remove extra blank lines at the start of the document
+        // data = re.sub("^\n*", "", data, 1)
+        text = text.replace(/^\n*/g, '');
+    }
+    {
+        // # Fix up page breaks:
+        // # \f should aways be preceeded and followed by \n
+        // data = re.sub("([^\n])\f", "\g<1>\n\f", data)
+        // data = re.sub("\f([^\n])", "\f\n\g<1>", data)
+        text = text.replace(/([^\n])\f/g, '$1\n\f');
+        text = text.replace(/\f([^\n])/g, '\f\n$1');
+    }
+    {
+        // # [Page nn] should be followed by \n\f\n
+        // data = re.sub("(?i)(\[Page [0-9ivxlc]+\])[\n\f\t ]*(\n *[^\n\f\t ])", "\g<1>\n\f\g<2>", data)
+        text = text.replace(/(\[Page [0-9ivxlc]+\])[\n\f\t ]*(\n *[^\n\f\t ])/ig, '$1\n\f$2');
+    }
+    {
+        // # Normalize indentation
+        // linestarts = re.findall("(?m)^([ ]*)\S", data)
+        // prefixlen = 72
+        // for start in linestarts:
+        //     if len(start) < prefixlen:
+        //         prefixlen = len(start)
+        // if prefixlen:
+        //     data = re.sub("\n"+(" "*prefixlen), "\n", data)
+    }
+    fse.writeFile('tmp.txt', text);
 
 })().catch(e => console.log(e));
 
