@@ -8,5 +8,8 @@ coverage/
 # macOS
 .DS_Store
 
+# VS Code
+.vscode/
+
 # other
 cache/
