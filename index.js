@@ -26,6 +26,7 @@ const rfcLinkBgnSgn = 'rfcLinkBgnSgn';
 const rfcLinkEndSgn = 'rfcLinkEndSgn';
 const rfcLinkBgn = 'https://www.rfc-editor.org/rfc/rfc';
 const rfcLinkEnd = '.html';
+const refs = [];
 
 (async () => {
     let text = '' + await fse.readFile(args.inFile);
@@ -40,28 +41,35 @@ const rfcLinkEnd = '.html';
     }
 
     { // Extract references
-
+        // text = text.replace(/(?<=\n[ \t]*\[)(\d+(?=\] (.+\n)+\n))/g, tpl_ref('$1', '$1'));
     }
 
     // Escape html special characters before insert html elements 
     text = escapeHtml(text);
 
     { // Insert RFC links
-        let tpl_a = (ind, txt) => `<a href="${rfcLinkBgnSgn}${ind}${rfcLinkEndSgn}">${txt}</a>`;
-        if (args.debug) tpl_a = tpl_debug(tpl_a, 'red');
+        let tpl_rfc = (ind, txt) => `<a href="${rfcLinkBgnSgn}${ind}${rfcLinkEndSgn}">${txt}</a>`;
+        if (args.debug) tpl_rfc = tpl_debug(tpl_rfc, 'red');
         // Match 'Obsoletes: 0000'
-        text = text.replace(/(Obsoletes: )(\d+)/, `$1${tpl_a('$2', '$2')}`);
+        text = text.replace(/(?<=Obsoletes: )(\d+)/, tpl_rfc('$1', '$1'));
         // Match 'RFC 0000' or 'RFCs 0000'
-        text = text.replace(/(RFCs? (\d+))/g, tpl_a('$2', '$1'));
+        text = text.replace(/(RFCs? (\d+))/g, tpl_rfc('$2', '$1'));
         // Match 'RFC\n    0000' or 'RFCs\n    0000'
         // Tip: In RFC 2616, section 3.2.1, it says 'RFCs\n   1738'
-        text = text.replace(/(RFCs?)(\n[ \t]*)(\d+)/g, `${tpl_a('$3', '$1')}$2${tpl_a('$3', '$3')}`);
+        text = text.replace(/(RFCs?)(\n[ \t]*)(\d+)/g, `${tpl_rfc('$3', '$1')}$2${tpl_rfc('$3', '$3')}`);
         // Match 'rfc0000'
-        text = text.replace(/(rfc(\d+))/g, tpl_a('$2', '$1'));
+        text = text.replace(/(rfc(\d+))/g, tpl_rfc('$2', '$1'));
     }
 
     { // Insert reference links
-
+        let tpl_ref = (id, txt) => `<a id="ref-${id}">${txt}</a>`;
+        let tpl_to_ref = (id, txt) => `<a href="#ref-${id}">${txt}</a>`;
+        if (args.debug) tpl_ref = tpl_debug(tpl_ref, 'lightblue');
+        if (args.debug) tpl_to_ref = tpl_debug(tpl_to_ref, 'cyan');
+        // Match '\n   [1] '
+        text = text.replace(/(?<=\n[ \t]*\[)(\d+(?=\] (.+\n)+\n))/g, tpl_ref('$1', '$1'));
+        // Match rest '[1]'
+        text = text.replace(/(?<=\[)(\d+)(?=\])/g, tpl_to_ref('$1', '$1'));
     }
 
     { // End work
