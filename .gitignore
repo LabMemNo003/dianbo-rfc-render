@@ -11,5 +11,5 @@ coverage/
 # VS Code
 .vscode/
 
-# other
-cache/
+# dev
+playground/
