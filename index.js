@@ -26,7 +26,7 @@ const rfcLinkBgnSgn = 'rfcLinkBgnSgn';
 const rfcLinkEndSgn = 'rfcLinkEndSgn';
 const rfcLinkBgn = 'https://www.rfc-editor.org/rfc/rfc';
 const rfcLinkEnd = '.html';
-const refs = [];
+const refTitles = [];
 
 (async () => {
     let text = '' + await fse.readFile(args.inFile);
@@ -40,8 +40,15 @@ const refs = [];
         text = text.replace(/[ \t]+$/mg, '');
     }
 
-    { // Extract references
-        // text = text.replace(/(?<=\n[ \t]*\[)(\d+(?=\] (.+\n)+\n))/g, tpl_ref('$1', '$1'));
+    { // Extract reference titles
+        text.replace(/(?<=\n[ \t]*\[)(\d+)\] ((.+\n)+\n)/g, (_, ind, ref) => {
+            let match, title;
+            if ((match = /"(.*)"/s.exec(ref)) !== null)
+                title = match[1].replace(/[ \t]*\n[ \t]*/g, ' ');
+            else
+                title = ref.split('.')[0];
+            refTitles[ind] = title;
+        });
     }
 
     // Escape html special characters before insert html elements 
@@ -59,22 +66,20 @@ const refs = [];
         text = text.replace(/(RFCs?)(\n[ \t]*)(\d+)/g, `${tpl_rfc('$3', '$1')}$2${tpl_rfc('$3', '$3')}`);
         // Match 'rfc0000'
         text = text.replace(/(rfc(\d+))/g, tpl_rfc('$2', '$1'));
+        // End work
+        text = text.replace(rfcLinkBgnSgn, rfcLinkBgn);
+        text = text.replace(rfcLinkEndSgn, rfcLinkEnd);
     }
 
     { // Insert reference links
-        let tpl_ref = (id, txt) => `<a id="ref-${id}">${txt}</a>`;
-        let tpl_to_ref = (id, txt) => `<a href="#ref-${id}">${txt}</a>`;
+        let tpl_ref = (id) => `<a id="ref-${id}">${id}</a>`;
+        let tpl_to_ref = (id) => `<a href="#ref-${id}" title="${refTitles[id]}">${id}</a>`;
         if (args.debug) tpl_ref = tpl_debug(tpl_ref, 'lightblue');
         if (args.debug) tpl_to_ref = tpl_debug(tpl_to_ref, 'cyan');
         // Match '\n   [1] '
-        text = text.replace(/(?<=\n[ \t]*\[)(\d+(?=\] (.+\n)+\n))/g, tpl_ref('$1', '$1'));
+        text = text.replace(/(?<=\n[ \t]*\[)(\d+)(?=\] (.+\n)+\n)/g, tpl_ref('$1'));
         // Match rest '[1]'
-        text = text.replace(/(?<=\[)(\d+)(?=\])/g, tpl_to_ref('$1', '$1'));
-    }
-
-    { // End work
-        text = text.replace(rfcLinkBgnSgn, rfcLinkBgn);
-        text = text.replace(rfcLinkEndSgn, rfcLinkEnd);
+        text = text.replace(/(?<=\[)(\d+)(?=\])/g, (_, ind) => tpl_to_ref(ind));
     }
 
     text = '<pre>' + text + '</pre>';
