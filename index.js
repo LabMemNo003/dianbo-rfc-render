@@ -69,14 +69,15 @@ args.debug = program.debug;
     }
 
     { // Insert section links
+        // Match 'sections 1.1, 2.2, 3.3'
+        // Tip: In RFC 2616, page 173, it says '(Section 10.4.17, 14.16)'
+        text = text.replace(/(?<=sections?)(((,?( |\n *)|,?( |\n *)and( |\n *))(\d+(\.\d+)*)){2,})/ig, (_, secs) => {
+            return secs.replace(/\d+(\.\d+)*/g, (ind) => t.enc(t.to_sec, ind, ind));
+        });
         // Match 'section 1.1'
         text = text.replace(/section (\d+(\.\d+)*)/ig, (mat, ind) => t.enc(t.to_sec, ind, mat));
         // Match 'section\n 1.1'
         text = text.replace(/(section)(\n[ \t]*)(\d+(\.\d+)*)/ig, (_, sec, mid, ind) => t.enc(t.to_sec, ind, sec) + mid + t.enc(t.to_sec, ind, ind));
-        // Match 'sections 1.1, 2.2, 3.3'
-        text = text.replace(/(?<=sections?)(((,?( |\n *)|,?( |\n *)and( |\n *))(\d+(\.\d+)*)){2,})/ig, (_, secs) => {
-            return secs.replace(/\d+(\.\d+)*/g, (ind) => t.enc(t.to_sec, ind, ind));
-        });
         // Match '1.1 title'
         // Tip: In RFC 2616, section 21, it says '21.  Full Copyright Statement'
         text = text.replace(/^(\d+(?:\.\d+)*)(?=\.? .*$)/mg, (_, ind) => t.enc(t.sec, ind));
