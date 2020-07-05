@@ -82,6 +82,23 @@ const refTitles = [];
         text = text.replace(/(?<=\[)(\d+)(?=\])/g, (_, ind) => tpl_to_ref(ind));
     }
 
+    { // Insert section and page links
+        let tpl_to_sec = (sec, txt) => `<a href="#sec-${sec}">${txt}</a>`;
+        let tpl_to_page = (page) => `<a href="#page-${page}">${page}</a>`;
+        if (args.debug) tpl_to_sec = tpl_debug(tpl_to_sec, 'lime');
+        if (args.debug) tpl_to_page = tpl_debug(tpl_to_page, 'limegreen');
+        // Match '   1.1  Introduction .................... 10'
+        text = text.replace(/(?<=^[ \t]*)(\d+(?:\.\d+)*)(  .+\.+)(\d+)$/mg, `${tpl_to_sec('$1', '$1')}$2${tpl_to_page('$3')}`);
+        // Match 'section 1.1'
+        text = text.replace(/section (\d+(\.\d+)*)/ig, tpl_to_sec('$1', '$&'));
+        // Match 'section\n 1.1'
+        text = text.replace(/(section)(\n[ \t]*)(\d+(\.\d+)*)/ig, `${tpl_to_sec('$3', '$1')}$2${tpl_to_sec('$3', '$3')}`);
+        // Match 'sections 1.1, 2.2, 3.3'
+        text = text.replace(/(?<=sections?)(((,?( |\n *)|,?( |\n *)and( |\n *))(\d+(\.\d+)*)){2,})/ig, (_, secs) => {
+            return secs.replace(/\d+(\.\d+)*/g, tpl_to_sec('$&', '$&'));
+        })
+    }
+
     text = '<pre>' + text + '</pre>';
 
     await fse.writeFile(args.outFile, text);
