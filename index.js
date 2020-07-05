@@ -6,6 +6,7 @@ const { program } = require('commander');
 const process = require('process');
 const fse = require('fs-extra');
 const path = require('path');
+const t = require('./lib/template')(true);
 
 program
     .requiredOption('-i, --input <file>', 'Input file')
@@ -22,83 +23,68 @@ args.dftFile = path.join(args.dir, `${args.base}.html`);
 args.outFile = program.output || args.dftFile;
 args.debug = program.debug;
 
-const rfcLinkBgnSgn = 'rfcLinkBgnSgn';
-const rfcLinkEndSgn = 'rfcLinkEndSgn';
-const rfcLinkBgn = 'https://www.rfc-editor.org/rfc/rfc';
-const rfcLinkEnd = '.html';
-const refTitles = [];
-
 (async () => {
     let text = '' + await fse.readFile(args.inFile);
 
-    { // Text normalize
-        // Remove empty lines at the beginning of text
-        text = text.replace(/^([ \t]*\n)*/, '');
-        // Remove empty lines at the end of text
-        text = text.replace(/([ \t]*\n)*$/, '');
-        // Remove white spaces at the end of each line
-        text = text.replace(/[ \t]+$/mg, '');
-    }
+    // Text normalize
+    // Remove empty lines at the beginning of text
+    text = text.replace(/^([ \t]*\n)*/, '');
+    // Remove empty lines at the end of text
+    text = text.replace(/([ \t]*\n)*$/, '');
+    // Remove white spaces at the end of each line
+    text = text.replace(/[ \t]+$/mg, '');
 
-    { // Extract reference titles
-        text.replace(/(?<=\n[ \t]*\[)(\d+)\] ((.+\n)+\n)/g, (_, ind, ref) => {
+    // Extract reference titles
+    const refTitles = ((doc) => {
+        let res = []
+        doc.replace(/(?<=\n[ \t]*\[)(\d+)\] ((.+\n)+\n)/g, (_, ind, ref) => {
             let match, title;
             if ((match = /"(.*)"/s.exec(ref)) !== null)
                 title = match[1].replace(/[ \t]*\n[ \t]*/g, ' ');
             else
                 title = ref.split('.')[0];
-            refTitles[ind] = title;
+            res[ind] = title;
         });
-    }
+        return res;
+    })(text);
 
-    // Escape html special characters before insert html elements 
-    text = escapeHtml(text);
-
-    { // Insert RFC links
-        let tpl_rfc = (ind, txt) => `<a href="${rfcLinkBgnSgn}${ind}${rfcLinkEndSgn}">${txt}</a>`;
-        if (args.debug) tpl_rfc = tpl_debug(tpl_rfc, 'red');
-        // Match 'Obsoletes: 0000'
-        text = text.replace(/(?<=Obsoletes: )(\d+)/, tpl_rfc('$1', '$1'));
-        // Match 'RFC 0000' or 'RFCs 0000'
-        text = text.replace(/(RFCs? (\d+))/g, tpl_rfc('$2', '$1'));
-        // Match 'RFC\n    0000' or 'RFCs\n    0000'
-        // Tip: In RFC 2616, section 3.2.1, it says 'RFCs\n   1738'
-        text = text.replace(/(RFCs?)(\n[ \t]*)(\d+)/g, `${tpl_rfc('$3', '$1')}$2${tpl_rfc('$3', '$3')}`);
-        // Match 'rfc0000'
-        text = text.replace(/(rfc(\d+))/g, tpl_rfc('$2', '$1'));
-        // End work
-        text = text.replace(rfcLinkBgnSgn, rfcLinkBgn);
-        text = text.replace(rfcLinkEndSgn, rfcLinkEnd);
-    }
-
-    { // Insert reference links
-        let tpl_ref = (id) => `<a id="ref-${id}">${id}</a>`;
-        let tpl_to_ref = (id) => `<a href="#ref-${id}" title="${refTitles[id]}">${id}</a>`;
-        if (args.debug) tpl_ref = tpl_debug(tpl_ref, 'lightblue');
-        if (args.debug) tpl_to_ref = tpl_debug(tpl_to_ref, 'cyan');
-        // Match '\n   [1] '
-        text = text.replace(/(?<=\n[ \t]*\[)(\d+)(?=\] (.+\n)+\n)/g, tpl_ref('$1'));
-        // Match rest '[1]'
-        text = text.replace(/(?<=\[)(\d+)(?=\])/g, (_, ind) => tpl_to_ref(ind));
-    }
-
-    { // Insert section and page links
-        let tpl_to_sec = (sec, txt) => `<a href="#sec-${sec}">${txt}</a>`;
-        let tpl_to_page = (page) => `<a href="#page-${page}">${page}</a>`;
-        if (args.debug) tpl_to_sec = tpl_debug(tpl_to_sec, 'lime');
-        if (args.debug) tpl_to_page = tpl_debug(tpl_to_page, 'limegreen');
+    { // Insert section and page links in Table of Contents
         // Match '   1.1  Introduction .................... 10'
-        text = text.replace(/(?<=^[ \t]*)(\d+(?:\.\d+)*)(  .+\.+)(\d+)$/mg, `${tpl_to_sec('$1', '$1')}$2${tpl_to_page('$3')}`);
+        text = text.replace(/(?<=^[ \t]*)(\d+(?:\.\d+)*)(  .+\.+)(\d+)$/mg, (_, sind, mid, pind) => t.enc(t.to_sec, sind, sind) + mid + t.enc(t.to_page, pind));
+    }
+
+    { // Insert section links
         // Match 'section 1.1'
-        text = text.replace(/section (\d+(\.\d+)*)/ig, tpl_to_sec('$1', '$&'));
+        text = text.replace(/section (\d+(\.\d+)*)/ig, (mat, ind) => t.enc(t.to_sec, ind, mat));
         // Match 'section\n 1.1'
-        text = text.replace(/(section)(\n[ \t]*)(\d+(\.\d+)*)/ig, `${tpl_to_sec('$3', '$1')}$2${tpl_to_sec('$3', '$3')}`);
+        text = text.replace(/(section)(\n[ \t]*)(\d+(\.\d+)*)/ig, (_, sec, mid, ind) => t.enc(t.to_sec, ind, sec) + mid + t.enc(t.to_sec, ind, ind));
         // Match 'sections 1.1, 2.2, 3.3'
         text = text.replace(/(?<=sections?)(((,?( |\n *)|,?( |\n *)and( |\n *))(\d+(\.\d+)*)){2,})/ig, (_, secs) => {
-            return secs.replace(/\d+(\.\d+)*/g, tpl_to_sec('$&', '$&'));
+            return secs.replace(/\d+(\.\d+)*/g, (_, ind) => t.enc(t.to_sec, ind, ind));
         })
     }
 
+    { // Insert RFC links
+        // Match 'Obsoletes: 0000'
+        text = text.replace(/(?<=Obsoletes: )(\d+)/, (_, ind) => t.enc(t.rfc, ind, ind));
+        // Match 'RFC 0000' or 'RFCs 0000'
+        text = text.replace(/(RFCs? (\d+))/g, (mat, ind) => t.enc(t.rfc, ind, mat));
+        // Match 'RFC\n    0000' or 'RFCs\n    0000'
+        // Tip: In RFC 2616, section 3.2.1, it says 'RFCs\n   1738'
+        text = text.replace(/(RFCs?)(\n[ \t]*)(\d+)/g, (_, rfc, mid, ind) => t.enc(t.rfc, ind, rfc) + mid + t.enc(t.rfc, ind, ind));
+        // Match 'rfc0000'
+        text = text.replace(/rfc(\d+)/g, (mat, ind) => t.enc(t.rfc, ind, mat));
+    }
+
+    { // Insert reference links
+        // Match '\n   [1] '
+        text = text.replace(/(?<=\n[ \t]*\[)(\d+)(?=\] (.+\n)+\n)/g, (_, ind) => t.enc(t.ref, ind));
+        // Match rest '[1]'
+        text = text.replace(/(?<=\[)(\d+)(?=\])/g, (_, ind) => t.enc(t.to_ref, ind, refTitles[ind]));
+    }
+
+    text = escapeHtml(text);
+    text = text.replace(t.pattern, t.decode);
     text = '<pre>' + text + '</pre>';
 
     await fse.writeFile(args.outFile, text);
@@ -112,8 +98,4 @@ function escapeHtml(unsafe) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
-}
-
-function tpl_debug(tpl, color) {
-    return (...args) => `<span style="background-color:${color};">${tpl(...args)}</span>`;
 }
