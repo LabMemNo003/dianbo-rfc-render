@@ -95,8 +95,9 @@ args.debug = program.debug;
         // Match 'RFC\n    0000' or 'RFCs\n    0000'
         // Tip: In RFC 2616, section 3.2.1, it says 'RFCs\n   1738'
         text = text.replace(/(RFCs?)(\n[ \t]*)(\d+)/g, (_, rfc, mid, ind) => t.enc(t.rfc, ind, rfc) + mid + t.enc(t.rfc, ind, ind));
-        // Match 'rfc0000'
-        text = text.replace(/rfc(\d+)/g, (mat, ind) => t.enc(t.rfc, ind, mat));
+        // Match 'rfc0000' or 'rfc-0000'
+        // Tip: In RFC 2616, section 19.3, it says 'assume that an RFC-850 date'
+        text = text.replace(/rfc-?(\d+)/ig, (mat, ind) => t.enc(t.rfc, ind, mat));
     }
 
     { // Insert BCP links
