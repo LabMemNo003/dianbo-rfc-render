@@ -30,7 +30,7 @@ args.debug = program.debug;
     // Remove empty lines at the beginning of text
     text = text.replace(/^([ \t]*\n)*/, '');
     // Remove empty lines at the end of text
-    text = text.replace(/([ \t]*\n)*$/, '');
+    text = text.replace(/([ \t\f]*\n)*$/, '');
     // Remove white spaces at the end of each line
     text = text.replace(/[ \t]+$/mg, '');
 
@@ -104,6 +104,11 @@ args.debug = program.debug;
         text = text.replace(/(?<=\n[ \t]*\[)(\d+)(?=\] (.+\n)+\n)/g, (_, ind) => t.enc(t.ref, ind));
         // Match rest '[1]'
         text = text.replace(/(?<=\[)(\d+)(?=\])/g, (_, ind) => t.enc(t.to_ref, ind, refTitles[ind]));
+    }
+
+    { // Insert horizontal lines as page break
+        // Match '\f'
+        text = text.replace(/\f/g, t.enc(t.hr));
     }
 
     text = escapeHtml(text);
