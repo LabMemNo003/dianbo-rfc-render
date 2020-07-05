@@ -58,8 +58,14 @@ args.debug = program.debug;
     }
 
     { // Insert section and page links in Table of Contents
-        // Match '   1.1  Introduction .................... 10'
-        text = text.replace(/(?<=^[ \t]*)(\d+(?:\.\d+)*)(  .+\.+)(\d+)$/mg, (_, sind, mid, pind) => t.enc(t.to_sec, sind, sind) + mid + t.enc(t.to_page, pind));
+        // Match Table of Contents
+        text = text.replace(/\n(([ \t]*\d+(\.\d+)*.*\d+\n)+(([RF].*)?\n|\f)+)+/, (tab) => {
+            // Match '   1.1  Introduction .................... 10'
+            return tab.replace(/(?<=^[ \t]*)(\d+(?:\.\d+)*)(.*?)(\d+)$/mg, (_, sind, mid, pind) => {
+                return t.enc(t.to_sec, sind, sind) + mid + t.enc(t.to_page, pind)
+            });
+        });
+        // text = text.replace(/(?<=^[ \t]*)(\d+(?:\.\d+)*)(  .+\.+)(\d+)$/mg, (_, sind, mid, pind) => t.enc(t.to_sec, sind, sind) + mid + t.enc(t.to_page, pind));
     }
 
     { // Insert section links
@@ -73,7 +79,7 @@ args.debug = program.debug;
         });
         // Match '1.1 title'
         // Tip: In RFC 2616, section 21, it says '21.  Full Copyright Statement'
-        text = text.replace(/^(\d+(?:\.\d+)*)(?=.? [ \w]*$)/mg, (_, ind) => t.enc(t.sec, ind));
+        text = text.replace(/^(\d+(?:\.\d+)*)(?=\.? .*$)/mg, (_, ind) => t.enc(t.sec, ind));
     }
 
     { // Insert page links
