@@ -111,6 +111,10 @@ args.debug = program.debug;
         text = text.replace(/\f/g, t.enc(t.hr));
     }
 
+    { // Insert URL links
+        text = text.replace(/http:\/\/\S+/g, uri => t.enc(t.uri, uri));
+    }
+
     text = escapeHtml(text);
     text = text.replace(t.pattern, t.decode);
     text = '<pre>' + text + '</pre>';
