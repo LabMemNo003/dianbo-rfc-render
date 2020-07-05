@@ -78,9 +78,17 @@ args.debug = program.debug;
         text = text.replace(/section (\d+(\.\d+)*)/ig, (mat, ind) => t.enc(t.to_sec, ind, mat));
         // Match 'section\n 1.1'
         text = text.replace(/(section)(\n[ \t]*)(\d+(\.\d+)*)/ig, (_, sec, mid, ind) => t.enc(t.to_sec, ind, sec) + mid + t.enc(t.to_sec, ind, ind));
+    }
+
+    { // Insert section links and markup titles
         // Match '1.1 title'
         // Tip: In RFC 2616, section 21, it says '21.  Full Copyright Statement'
-        text = text.replace(/^(\d+(?:\.\d+)*)(?=\.? .*$)/mg, (_, ind) => t.enc(t.sec, ind));
+        // Tip: In RFC 2616, page 170, it says '19.6.1.1 Changes to Simplify Multi-homed Web Servers and Conserve IP\n         Addresses'
+        text = text.replace(/(?<=\n)(?:\d+(:?\.\d+)*)\.? +(?:.*?)(?=\n\n)/sg, (title) => {
+            return title
+                .replace(/^\d+(:?\.\d+)*/, (ind) => t.enc(t.sec, ind))
+                .replace(/(?<=^[ \t]*)\S.*(?=$)/mg, (title) => t.enc(t.title, title));
+        });
     }
 
     { // Insert page links
@@ -128,7 +136,7 @@ args.debug = program.debug;
     }
 
     text = escapeHtml(text);
-    text = text.replace(t.pattern, t.decode);
+    text = t.iteDec(text);
     text = '<pre>' + text + '</pre>';
 
     await fse.writeFile(args.outFile, text);
