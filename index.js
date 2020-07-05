@@ -71,6 +71,14 @@ args.debug = program.debug;
         text = text.replace(/(?<=sections?)(((,?( |\n *)|,?( |\n *)and( |\n *))(\d+(\.\d+)*)){2,})/ig, (_, secs) => {
             return secs.replace(/\d+(\.\d+)*/g, (_, ind) => t.enc(t.to_sec, ind, ind));
         });
+        // Match '1.1 title'
+        // Tip: In RFC 2616, section 21, it says '21.  Full Copyright Statement'
+        text = text.replace(/^(\d+(?:\.\d+)*)(?=.? [ \w]*$)/mg, (_, ind) => t.enc(t.sec, ind));
+    }
+
+    { // Insert page links
+        // Match '...\n...\n...\n...[Page 1]\n'
+        text = text.replace(/.*?\[Page (\d+)\]\n/sg, (mat, ind) => t.enc(t.page, ind) + mat);
     }
 
     { // Insert RFC links
