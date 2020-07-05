@@ -75,7 +75,7 @@ args.debug = program.debug;
         text = text.replace(/(section)(\n[ \t]*)(\d+(\.\d+)*)/ig, (_, sec, mid, ind) => t.enc(t.to_sec, ind, sec) + mid + t.enc(t.to_sec, ind, ind));
         // Match 'sections 1.1, 2.2, 3.3'
         text = text.replace(/(?<=sections?)(((,?( |\n *)|,?( |\n *)and( |\n *))(\d+(\.\d+)*)){2,})/ig, (_, secs) => {
-            return secs.replace(/\d+(\.\d+)*/g, (_, ind) => t.enc(t.to_sec, ind, ind));
+            return secs.replace(/\d+(\.\d+)*/g, (ind) => t.enc(t.to_sec, ind, ind));
         });
         // Match '1.1 title'
         // Tip: In RFC 2616, section 21, it says '21.  Full Copyright Statement'
@@ -112,7 +112,7 @@ args.debug = program.debug;
     }
 
     { // Insert URL links
-        text = text.replace(/http:\/\/\S+/g, uri => t.enc(t.uri, uri));
+        text = text.replace(/http:\/\/\S+/g, (uri) => t.enc(t.uri, uri));
     }
 
     text = escapeHtml(text);
