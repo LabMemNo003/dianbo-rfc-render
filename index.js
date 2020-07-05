@@ -112,6 +112,9 @@ args.debug = program.debug;
     }
 
     { // Insert URL links
+        // Tip: In RFC 2616, page 160, it says '<URL: http://www.isi.edu/touch/pubs/http-perf96/>'
+        text = text.replace(/(?<=<URL: )http:\/\/\S+(?=>)/g, (uri) => t.enc(t.uri, uri));
+        // Match general URI
         text = text.replace(/http:\/\/\S+/g, (uri) => t.enc(t.uri, uri));
     }
 
