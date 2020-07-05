@@ -99,6 +99,13 @@ args.debug = program.debug;
         text = text.replace(/rfc(\d+)/g, (mat, ind) => t.enc(t.rfc, ind, mat));
     }
 
+    { // Insert BCP links
+        // Match 'BCP 00'
+        text = text.replace(/BCP (\d+)/g, (mat, ind) => t.enc(t.bcp, ind, mat));
+        // Match 'BCP\n    00'
+        text = text.replace(/(BCP)(\n[ \t]*)(\d+)/g, (_, bcp, mid, ind) => t.enc(t.bcp, ind, bcp) + mid + t.enc(t.bcp, ind, ind));
+    }
+
     { // Insert reference links
         // Match '\n   [1] '
         text = text.replace(/(?<=\n[ \t]*\[)(\d+)(?=\] (.+\n)+\n)/g, (_, ind) => t.enc(t.ref, ind));
