@@ -6,7 +6,7 @@ const { program } = require('commander');
 const process = require('process');
 const fse = require('fs-extra');
 const path = require('path');
-const t = require('./lib/template')(true);
+const t = require('./lib/template')(false);
 
 program
     .requiredOption('-i, --input <file>', 'Input file')
@@ -80,7 +80,7 @@ args.debug = program.debug;
         text = text.replace(/(section)(\n[ \t]*)(\d+(\.\d+)*)/ig, (_, sec, mid, ind) => t.enc(t.to_sec, ind, sec) + mid + t.enc(t.to_sec, ind, ind));
     }
 
-    { // Insert section links and markup titles
+    { // Insert section links and markup section titles
         // Match '1.1 title'
         // Tip: In RFC 2616, section 21, it says '21.  Full Copyright Statement'
         // Tip: In RFC 2616, page 170, it says '19.6.1.1 Changes to Simplify Multi-homed Web Servers and Conserve IP\n         Addresses'
@@ -89,6 +89,10 @@ args.debug = program.debug;
                 .replace(/^\d+(:?\.\d+)*/, (ind) => t.enc(t.sec, ind))
                 .replace(/(?<=^[ \t]*)\S.*(?=$)/mg, (title) => t.enc(t.title, title));
         });
+    }
+
+    { // Markup main title
+        text = text.replace(/(?<=\n\n[ \t]*)\S.*(?=\n\n)/, (title) => t.enc(t.title, title));
     }
 
     { // Insert page links
