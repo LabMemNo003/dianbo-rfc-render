@@ -13,7 +13,3 @@ This will generate rfc2616.html in the same folder.
 ./bin/render.js -i /path/to/rfc2616.txt -d
 ```
 With -d option, each rendered markup element will be wrapped with a colored span element, which helps you figure out the matched text.
-
-## Validation
-
-**Version 0.0.2**: RFC2616
