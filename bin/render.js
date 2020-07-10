@@ -11,7 +11,7 @@ const M = require('../lib/markup');
 program
     .requiredOption('-i, --input <file>', 'Input file')
     .option('-o, --output <file>', 'Input file')
-    .option('-d, --debug', 'Debug mode')
+    .option('-d, --debug [opt]', 'Debug mode')
     .parse(process.argv);
 
 const args = {};
